@@ -142,7 +142,6 @@ public class AplikaceFirma {
     private static void ulozitDoSql() {
     	sqlDb.zalohujVse(db);
         sqlDb.disconnect();
-        System.out.println("[SQL] Data byla synchronizována do databáze.");
     }
 
     private static void nactiZSql() {
@@ -153,7 +152,7 @@ public class AplikaceFirma {
             Zamestnanec.nastavitPocitadlo(maxId);
             System.out.println("[SQL] Data byla úspěšně načtena z databáze.");
         } else {
-            System.out.println("[SQL] Databáze je prázdná, začínáme s čistým štítem.");
+            System.out.println("[SQL] Databáze je prázdná");
         }
     }
 }
