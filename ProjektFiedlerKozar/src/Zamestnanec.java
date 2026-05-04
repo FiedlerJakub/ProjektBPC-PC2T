@@ -16,10 +16,25 @@ abstract class Zamestnanec implements Serializable {
         this.rokNarozeni = rokNarozeni;
     }
 
-    public static void nastavitPocitadlo(int maxId) { pocitadloId = maxId + 1; }
-    public int getId() { return id; }
-    public String getPrijmeni() { return prijmeni; }
+    public static void nastavitPocitadlo(int maxId) { 
+    	pocitadloId = maxId + 1; 
+    }
+    public String getPrijmeni() { 
+    	return prijmeni; 
+    }
     public abstract void spustitDovednost(List<Zamestnanec> vsichni);
+    public void setId(int id) {
+        this.id = id;
+    }
+    public int getId() {
+        return id;
+    }
+    public String getJmeno() {
+        return jmeno;
+    }
+    public int getRokNarozeni() {
+        return rokNarozeni;
+    }
 
     @Override
     public String toString() {

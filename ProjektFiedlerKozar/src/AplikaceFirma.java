@@ -3,9 +3,11 @@ import java.util.*;
 
 public class AplikaceFirma {
     private static List<Zamestnanec> db = new ArrayList<>();
+    private static Databaze sqlDb = new Databaze();
     private static Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) {
+    	sqlDb.connect("firma_zaloha.db");
         nactiZSql(); 
         boolean bezi = true;
 
@@ -34,30 +36,57 @@ public class AplikaceFirma {
             }
         }
     }
-
-    // --- IMPLEMENTACE FUNKCÍ ---
+    public static int readNumber(Scanner sc) {
+        while (!sc.hasNextInt()) {
+            System.out.println("Zadejte celé číslo"); 
+            sc.next(); 
+        }
+        int cislo = sc.nextInt();
+        sc.nextLine();
+        return cislo;
+    }
 
     private static void pridatZamestnance() {
-        System.out.print("Skupina (1-Analytik, 2-Specialista): ");
-        int typ = Integer.parseInt(sc.nextLine());
-        System.out.print("Jméno: "); String j = sc.nextLine();
-        System.out.print("Příjmení: "); String p = sc.nextLine();
-        System.out.print("Rok narození: "); int r = Integer.parseInt(sc.nextLine());
+    	    System.out.print("Skupina (1-Analytik, 2-Specialista): ");
+    	    int typ = readNumber(sc);
+    	    
+    	    System.out.print("Jméno: "); 
+    	    String j = sc.nextLine();
+    	    
+    	    System.out.print("Příjmení: "); 
+    	    String p = sc.nextLine();
+    	    
+    	    System.out.print("Rok narození: "); 
+    	    int r = readNumber(sc);
 
-        if (typ == 1) db.add(new DatovyAnalytik(j, p, r));
-        else db.add(new BezpecnostniSpecialista(j, p, r));
-        System.out.println("Zaměstnanec přidán.");
+    	    if (typ == 1) {
+    	        db.add(new DatovyAnalytik(j, p, r));
+    	    } else {
+    	        db.add(new BezpecnostniSpecialista(j, p, r));
+    	    }
+    	    System.out.println("Zaměstnanec přidán.");
     }
 
     private static void pridatSpolupraci() {
-        System.out.print("ID zaměstnance: "); int id1 = Integer.parseInt(sc.nextLine());
-        System.out.print("ID kolegy: "); int id2 = Integer.parseInt(sc.nextLine());
+    	System.out.print("ID zaměstnance: "); 
+        int id1 = readNumber(sc);
+        
+        System.out.print("ID kolegy: "); 
+        int id2 = readNumber(sc);
+        
         System.out.print("Kvalita (1-Spatna, 2-Prumerna, 3-Dobra): ");
-        int kv = Integer.parseInt(sc.nextLine());
-        Kvalita k = Kvalita.values()[kv-1];
-
-        db.stream().filter(z -> z.id == id1).findFirst().ifPresent(z -> z.seznamSpolupraci.add(new Spoluprace(id2, k)));
-        System.out.println("Spolupráce zaevidována.");
+        int kvalita = readNumber(sc);
+        
+        if (kvalita >= 1 && kvalita <= Kvalita.values().length) {
+            Kvalita k = Kvalita.values()[kvalita - 1];
+            db.stream()
+              .filter(z -> z.id == id1)
+              .findFirst()
+              .ifPresent(z -> z.seznamSpolupraci.add(new Spoluprace(id2, k)));
+            System.out.println("Spolupráce zaevidována.");
+        } else {
+            System.out.println("Neplatná volba kvality.");
+        }
     }
 
     private static void odebratZamestnance() {
@@ -82,13 +111,14 @@ public class AplikaceFirma {
     }
 
     private static void poctyVeSkupinách() {
-        long anal = db.stream().filter(z -> z instanceof DatovyAnalytik).count();
+        long analitik = db.stream().filter(z -> z instanceof DatovyAnalytik).count();
         long spec = db.stream().filter(z -> z instanceof BezpecnostniSpecialista).count();
-        System.out.println("Analytici: " + anal + ", Specialisté: " + spec);
+        System.out.println("Analytici: " + analitik + ", Specialisté: " + spec);
     }
 
     private static void dovednost() {
-        System.out.print("ID zaměstnance: "); int id = Integer.parseInt(sc.nextLine());
+        System.out.print("ID zaměstnance: ");
+        int id = readNumber(sc);
         db.stream().filter(z -> z.id == id).findFirst().ifPresent(z -> z.spustitDovednost(db));
     }
 
@@ -110,10 +140,20 @@ public class AplikaceFirma {
     }
 
     private static void ulozitDoSql() {
+    	sqlDb.zalohujVse(db);
+        sqlDb.disconnect();
         System.out.println("[SQL] Data byla synchronizována do databáze.");
     }
 
     private static void nactiZSql() {
-        System.out.println("[SQL] Kontrola zálohy v databázi... OK.");
+        List<Zamestnanec> nactenaData = sqlDb.getVsechnyZamestnance();
+        if (nactenaData != null && !nactenaData.isEmpty()) {
+            db = nactenaData;
+            int maxId = db.stream().mapToInt(Zamestnanec::getId).max().orElse(0);
+            Zamestnanec.nastavitPocitadlo(maxId);
+            System.out.println("[SQL] Data byla úspěšně načtena z databáze.");
+        } else {
+            System.out.println("[SQL] Databáze je prázdná, začínáme s čistým štítem.");
+        }
     }
 }

@@ -13,7 +13,6 @@ class DatovyAnalytik extends Zamestnanec {
             return;
         }
 
-        // Množina mých kolegů (jejich ID)
         Set<Integer> mojiKolegove = seznamSpolupraci.stream()
                 .map(s -> s.idKolegy)
                 .collect(Collectors.toSet());
@@ -24,15 +23,12 @@ class DatovyAnalytik extends Zamestnanec {
         Zamestnanec nejlepsiKolega = null;
 
         for (Zamestnanec z : vsichni) {
-            // Přeskočit sebe a ty, kteří nejsou moji kolegové
             if (z.id == this.id || !mojiKolegove.contains(z.id)) continue;
 
-            // Množina kolegů tohoto spolupracovníka
             Set<Integer> jehoKolegove = z.seznamSpolupraci.stream()
                     .map(s -> s.idKolegy)
                     .collect(Collectors.toSet());
 
-            // Průnik – společní kolegové (vyjma nás dvou navzájem)
             Set<Integer> spolecni = new HashSet<>(mojiKolegove);
             spolecni.retainAll(jehoKolegove);
             spolecni.remove(z.id);
