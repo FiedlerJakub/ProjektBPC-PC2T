@@ -51,77 +51,176 @@ public class AplikaceFirma {
     	    int typ = readNumber(sc);
     	    
     	    System.out.print("Jméno: "); 
-    	    String j = sc.nextLine();
+    	    String jmeno = sc.nextLine();
     	    
     	    System.out.print("Příjmení: "); 
-    	    String p = sc.nextLine();
+    	    String prijmeni = sc.nextLine();
     	    
     	    System.out.print("Rok narození: "); 
-    	    int r = readNumber(sc);
+    	    int rok = readNumber(sc);
 
     	    if (typ == 1) {
-    	        db.add(new DatovyAnalytik(j, p, r));
+    	        db.add(new DatovyAnalytik(jmeno, prijmeni, rok));
     	    } else {
-    	        db.add(new BezpecnostniSpecialista(j, p, r));
+    	        db.add(new BezpecnostniSpecialista(jmeno, prijmeni, rok));
     	    }
     	    System.out.println("Zaměstnanec přidán.");
     }
 
     private static void pridatSpolupraci() {
-    	System.out.print("ID zaměstnance: "); 
+        System.out.print("ID zaměstnance: "); 
         int id1 = readNumber(sc);
         
         System.out.print("ID kolegy: "); 
         int id2 = readNumber(sc);
         
         System.out.print("Kvalita (1-Spatna, 2-Prumerna, 3-Dobra): ");
-        int kvalita = readNumber(sc);
+        int volbaKvality = readNumber(sc);
         
-        if (kvalita >= 1 && kvalita <= Kvalita.values().length) {
-            Kvalita k = Kvalita.values()[kvalita - 1];
-            db.stream()
-              .filter(z -> z.id == id1)
-              .findFirst()
-              .ifPresent(z -> z.seznamSpolupraci.add(new Spoluprace(id2, k)));
-            System.out.println("Spolupráce zaevidována.");
+        if (volbaKvality >= 1 && volbaKvality <= Kvalita.values().length) {
+            Kvalita k = Kvalita.values()[volbaKvality - 1];
+            
+            for (Zamestnanec z : db) {
+                if (z.getId() == id1) {
+                    z.seznamSpolupraci.add(new Spoluprace(id2, k));
+                    System.out.println("Spolupráce zaevidována.");
+                    return; 
+                }
+            }
+            System.out.println("Zaměstnanec s ID " + id1 + " nebyl nalezen.");
         } else {
             System.out.println("Neplatná volba kvality.");
         }
     }
 
     private static void odebratZamestnance() {
-        System.out.print("ID k smazání: "); int id = Integer.parseInt(sc.nextLine());
-        db.removeIf(z -> z.id == id);
-        db.forEach(z -> z.seznamSpolupraci.removeIf(s -> s.idKolegy == id));
+        System.out.print("ID k smazání: "); 
+        int id = readNumber(sc);
+        for (int i = db.size() - 1; i >= 0; i--) {
+            if (db.get(i).getId() == id) {
+                db.remove(i);
+            }
+        }
+
+        for (Zamestnanec z : db) {
+            for (int j = z.seznamSpolupraci.size() - 1; j >= 0; j--) {
+                if (z.seznamSpolupraci.get(j).idKolegy == id) {
+                    z.seznamSpolupraci.remove(j);
+                }
+            }
+        }
         System.out.println("Zaměstnanec a jeho vazby odstraněny.");
     }
 
     private static void vyhledatZamestnance() {
-        System.out.print("Zadejte ID: "); int id = Integer.parseInt(sc.nextLine());
-        db.stream().filter(z -> z.id == id).forEach(System.out::println);
+        System.out.print("Zadejte ID: "); 
+        int id = readNumber(sc);
+        boolean nalezen = false;
+
+        for (Zamestnanec z : db) {
+            if (z.getId() == id) {
+                System.out.println(z.toString());
+                System.out.println("Počet vazeb: " + z.seznamSpolupraci.size());
+                
+                int spatne = 0, prumerne = 0, dobre = 0;
+                for (Spoluprace s : z.seznamSpolupraci) {
+                    if (s.kvalita == Kvalita.SPATNA) spatne++;
+                    else if (s.kvalita == Kvalita.PRUMERNA) prumerne++;
+                    else if (s.kvalita == Kvalita.DOBRA) dobre++;
+                }
+                System.out.printf("Detail vazeb: Špatné(%d), Průměrné(%d), Dobré(%d)%n", spatne, prumerne, dobre);
+                
+                nalezen = true;
+                break;
+            }
+        }
+
+        if (!nalezen) {
+            System.out.println("Zaměstnanec s ID " + id + " neexistuje.");
+        }
     }
 
     private static void vypisAbecedne() {
-        db.stream().sorted(Comparator.comparing(Zamestnanec::getPrijmeni)).forEach(System.out::println);
+        Collections.sort(db);
+        System.out.println("--- DATOVÍ ANALYTICI ---");
+        for (Zamestnanec z : db) {
+            if (z instanceof DatovyAnalytik) {
+                System.out.println(z);
+            }
+        }
+
+        System.out.println("--- BEZPEČNOSTNÍ SPECIALISTÉ ---");
+        for (Zamestnanec z : db) {
+            if (z instanceof BezpecnostniSpecialista) {
+                System.out.println(z);
+            }
+        }
     }
 
     private static void statistiky() {
-        Zamestnanec max = db.stream().max(Comparator.comparing(z -> z.seznamSpolupraci.size())).orElse(null);
-        System.out.println("Nejvíc vazeb má: " + (max != null ? max.getPrijmeni() : "nikdo"));
+        Zamestnanec maxZ = null;
+        int maxVazeb = -1;
+
+        for (Zamestnanec z : db) {
+            if (z.seznamSpolupraci.size() > maxVazeb) {
+                maxVazeb = z.seznamSpolupraci.size();
+                maxZ = z;
+            }
+        }
+        System.out.println("Nejvíc vazeb má: " + (maxZ != null ? maxZ.getPrijmeni() : "nikdo"));
+
+        int pocetSpatna = 0;
+        int pocetPrumerna = 0;
+        int pocetDobra = 0;
+
+        for (Zamestnanec z : db) {
+            for (Spoluprace s : z.seznamSpolupraci) {
+                if (s.kvalita == Kvalita.SPATNA) pocetSpatna++;
+                else if (s.kvalita == Kvalita.PRUMERNA) pocetPrumerna++;
+                else if (s.kvalita == Kvalita.DOBRA) pocetDobra++;
+            }
+        }
+
+        String prevazujici = "žádná";
+        int maxPocet = Math.max(pocetSpatna, Math.max(pocetPrumerna, pocetDobra));
+
+        if (maxPocet > 0) {
+            if (maxPocet == pocetSpatna) prevazujici = "Špatná";
+            else if (maxPocet == pocetPrumerna) prevazujici = "Průměrná";
+            else prevazujici = "Dobrá";
+        }
+
+        System.out.println("Převažující kvalita spolupráce: " + prevazujici);
     }
 
     private static void poctyVeSkupinách() {
-        long analitik = db.stream().filter(z -> z instanceof DatovyAnalytik).count();
-        long spec = db.stream().filter(z -> z instanceof BezpecnostniSpecialista).count();
-        System.out.println("Analytici: " + analitik + ", Specialisté: " + spec);
+        int pocetAnalytiku = 0;
+        int pocetSpecialistu = 0;
+
+        for (Zamestnanec z : db) {
+            if (z instanceof DatovyAnalytik) {
+                pocetAnalytiku++;
+            } else if (z instanceof BezpecnostniSpecialista) {
+                pocetSpecialistu++;
+            }
+        }
+        
+        System.out.println("Analytici: " + pocetAnalytiku + ", Specialisté: " + pocetSpecialistu);
     }
 
     private static void dovednost() {
         System.out.print("ID zaměstnance: ");
         int id = readNumber(sc);
-        db.stream().filter(z -> z.id == id).findFirst().ifPresent(z -> z.spustitDovednost(db));
-    }
 
+        for (Zamestnanec z : db) {
+            if (z.getId() == id) {
+                z.spustitDovednost(db);
+                return;
+            }
+        }
+        
+        System.out.println("Zaměstnanec s ID " + id + " nebyl nalezen.");
+    }
     private static void ulozitDoSouboru() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("data.ser"))) {
             oos.writeObject(db);
@@ -133,10 +232,23 @@ public class AplikaceFirma {
     private static void nactiZeSouboru() {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("data.ser"))) {
             db = (List<Zamestnanec>) ois.readObject();
-            int maxId = db.stream().mapToInt(z -> z.id).max().orElse(1);
+
+            int maxId = 0;
+            for (Zamestnanec z : db) {
+                if (z.getId() > maxId) {
+                    maxId = z.getId();
+                }
+            }
+            
             Zamestnanec.nastavitPocitadlo(maxId);
-            System.out.println("Data načtena ze souboru.");
-        } catch (Exception e) { System.out.println("Soubor nenalezen nebo je poškozen."); }
+            
+            System.out.println("Data byla úspěšně načtena. Počet záznamů: " + db.size());
+            
+        } catch (FileNotFoundException e) {
+            System.out.println("Soubor se zálohou nebyl nalezen, začínáme s prázdnou databází.");
+        } catch (Exception e) {
+            System.out.println("Chyba při načítání dat: " + e.getMessage());
+        }
     }
 
     private static void ulozitDoSql() {

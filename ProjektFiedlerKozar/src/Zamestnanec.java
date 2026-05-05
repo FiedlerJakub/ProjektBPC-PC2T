@@ -1,7 +1,7 @@
 import java.io.*;
 import java.util.*;
 
-abstract class Zamestnanec implements Serializable {
+abstract class Zamestnanec implements Serializable, Comparable<Zamestnanec> {
     private static int pocitadloId = 1;
     protected int id;
     protected String jmeno;
@@ -35,10 +35,11 @@ abstract class Zamestnanec implements Serializable {
     public int getRokNarozeni() {
         return rokNarozeni;
     }
-
-    @Override
     public String toString() {
         return String.format("ID: %d | %s %s (%d) | Skupina: %s | Vazeb: %d", 
             id, prijmeni, jmeno, rokNarozeni, this.getClass().getSimpleName(), seznamSpolupraci.size());
+    }
+    public int compareTo(Zamestnanec druhy) {
+        return this.prijmeni.compareTo(druhy.prijmeni);
     }
 }

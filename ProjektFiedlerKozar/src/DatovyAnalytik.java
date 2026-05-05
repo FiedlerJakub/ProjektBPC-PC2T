@@ -1,21 +1,15 @@
 import java.util.*;
-import java.util.stream.*;
 
 class DatovyAnalytik extends Zamestnanec {
     public DatovyAnalytik(String jmeno, String prijmeni, int rok) {
         super(jmeno, prijmeni, rok);
     }
-
-    @Override
+    
     public void spustitDovednost(List<Zamestnanec> vsichni) {
         if (seznamSpolupraci.isEmpty()) {
             System.out.println("Žádní spolupracovníci – nelze provést analýzu.");
             return;
         }
-
-        Set<Integer> mojiKolegove = seznamSpolupraci.stream()
-                .map(s -> s.idKolegy)
-                .collect(Collectors.toSet());
 
         System.out.println("--- Analýza společných kontaktů pro " + jmeno + " " + prijmeni + " ---");
 
@@ -23,19 +17,22 @@ class DatovyAnalytik extends Zamestnanec {
         Zamestnanec nejlepsiKolega = null;
 
         for (Zamestnanec z : vsichni) {
-            if (z.id == this.id || !mojiKolegove.contains(z.id)) continue;
+            
+            if (z.id == this.id || !jeToMujKolega(z.id)) {
+                continue;
+            }
 
-            Set<Integer> jehoKolegove = z.seznamSpolupraci.stream()
-                    .map(s -> s.idKolegy)
-                    .collect(Collectors.toSet());
+            int pocetSpolecnych = 0;
+            for (Spoluprace moje : this.seznamSpolupraci) {
+                for (Spoluprace jeho : z.seznamSpolupraci) {
+                    if (moje.idKolegy == jeho.idKolegy && moje.idKolegy != z.id && moje.idKolegy != this.id) {
+                        pocetSpolecnych++;
+                    }
+                }
+            }
 
-            Set<Integer> spolecni = new HashSet<>(mojiKolegove);
-            spolecni.retainAll(jehoKolegove);
-            spolecni.remove(z.id);
-            spolecni.remove(this.id);
-
-            if (spolecni.size() > nejvetsiPrunik) {
-                nejvetsiPrunik = spolecni.size();
+            if (pocetSpolecnych > nejvetsiPrunik) {
+                nejvetsiPrunik = pocetSpolecnych;
                 nejlepsiKolega = z;
             }
         }
@@ -44,7 +41,15 @@ class DatovyAnalytik extends Zamestnanec {
             System.out.println("Žádný ze spolupracovníků nemá evidované vlastní vazby.");
         } else {
             System.out.printf("Nejvíce společných kolegů (%d) má: %s %s (ID: %d)%n",
-                    nejvetsiPrunik, nejlepsiKolega.prijmeni, nejlepsiKolega.jmeno, nejlepsiKolega.id);
+                    nejvetsiPrunik, nejlepsiKolega.getPrijmeni(), nejlepsiKolega.getJmeno(), nejlepsiKolega.getId());
         }
+    }
+
+
+    private boolean jeToMujKolega(int hledaneId) {
+        for (Spoluprace s : seznamSpolupraci) {
+            if (s.idKolegy == hledaneId) return true;
+        }
+        return false;
     }
 }
